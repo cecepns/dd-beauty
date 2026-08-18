@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#faf7f5] text-slate-800 antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f8f1f4;
+}
+::-webkit-scrollbar-thumb {
+  background: #e2cad5;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #be185d;
+}
+
+/* Print Stylesheet for Invoices & Thermal Receipts */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-receipt, #printable-receipt * {
+    visibility: visible;
+  }
+  #printable-receipt {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Luxury Card Glow Effect */
+.luxury-glow {
+  box-shadow: 0 10px 30px -10px rgba(190, 24, 93, 0.12);
+}
+
+.luxury-card {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(244, 114, 182, 0.15);
+}
