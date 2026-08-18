@@ -85,6 +85,18 @@ async function initDatabase() {
         }
       }
     }
+
+    // Clean up any existing records with deprecated status or payment_method
+    try {
+      await conn.query("UPDATE bookings SET status = 'booked' WHERE status = 'on_going'");
+      await conn.query("UPDATE bookings SET payment_method = 'qris' WHERE payment_method NOT IN ('qris', 'cash')");
+      await conn.query("ALTER TABLE bookings MODIFY COLUMN status ENUM('booked', 'completed', 'cancelled') DEFAULT 'booked'");
+      await conn.query("ALTER TABLE bookings MODIFY COLUMN payment_method ENUM('qris', 'cash') DEFAULT 'qris'");
+      await conn.query("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS shipping_fee DECIMAL(12, 2) NOT NULL DEFAULT 0.00 AFTER discount_amount");
+    } catch (e) {
+      // Ignore if column alter is not supported or already modified
+    }
+
     conn.release();
   } catch (err) {
     console.error('❌ MySQL Database Pool Connection Error:', err.message);
@@ -750,6 +762,7 @@ app.post('/api/bookings', asyncHandler(async (req, res) => {
     items = [],
     discount_type = 'nominal',
     discount_value = 0,
+    shipping_fee = 0,
     dp_amount = 0,
     paid_amount = 0,
     payment_method = 'qris',
@@ -787,7 +800,8 @@ app.post('/api/bookings', asyncHandler(async (req, res) => {
     discount_amount = Math.min(discVal, subtotal);
   }
 
-  const grand_total = Math.max(0, subtotal - discount_amount);
+  const shipFee = parseFloat(shipping_fee) || 0;
+  const grand_total = Math.max(0, subtotal - discount_amount) + shipFee;
   const dp = parseFloat(dp_amount) || 0;
   const paid = parseFloat(paid_amount) || dp;
   const remaining_amount = Math.max(0, grand_total - paid);
@@ -804,10 +818,12 @@ app.post('/api/bookings', asyncHandler(async (req, res) => {
   const dateStr = booking_date.replace(/-/g, '');
   const invoice_number = `INV-${dateStr}-${String(nextId).padStart(3, '0')}`;
 
+  const validPaymentMethod = ['qris', 'cash'].includes(payment_method) ? payment_method : 'qris';
+
   const result = await query(
     `INSERT INTO bookings 
-     (invoice_number, customer_id, booking_date, booking_time, status, beautician_name, subtotal, discount_type, discount_value, discount_amount, grand_total, dp_amount, paid_amount, remaining_amount, payment_status, payment_method, customer_notes, internal_notes)
-     VALUES (?, ?, ?, ?, 'booked', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (invoice_number, customer_id, booking_date, booking_time, status, beautician_name, subtotal, discount_type, discount_value, discount_amount, shipping_fee, grand_total, dp_amount, paid_amount, remaining_amount, payment_status, payment_method, customer_notes, internal_notes)
+     VALUES (?, ?, ?, ?, 'booked', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       invoice_number,
       parseInt(customer_id),
@@ -818,12 +834,13 @@ app.post('/api/bookings', asyncHandler(async (req, res) => {
       discount_type,
       discVal,
       discount_amount,
+      shipFee,
       grand_total,
       dp,
       paid,
       remaining_amount,
       payment_status,
-      payment_method,
+      validPaymentMethod,
       customer_notes,
       internal_notes
     ]
@@ -861,28 +878,30 @@ app.put('/api/bookings/:id', asyncHandler(async (req, res) => {
   if (!existing.length) return res.status(404).json({ success: false, message: 'Booking tidak ditemukan' });
 
   const current = existing[0];
-  const { status, beautician_name, paid_amount, payment_method, customer_notes, internal_notes } = req.body;
+  const { status, beautician_name, shipping_fee, paid_amount, payment_method, customer_notes, internal_notes } = req.body;
+
+  const validPaymentMethod = payment_method ? (['qris', 'cash'].includes(payment_method) ? payment_method : 'qris') : current.payment_method;
+  const validStatus = status === 'on_going' ? 'booked' : status;
+
+  let newShippingFee = current.shipping_fee !== undefined ? parseFloat(current.shipping_fee) : 0;
+  if (shipping_fee !== undefined) {
+    newShippingFee = parseFloat(shipping_fee) || 0;
+  }
+  const newGrandTotal = Math.max(0, parseFloat(current.subtotal) - parseFloat(current.discount_amount)) + newShippingFee;
 
   let newPaidAmount = current.paid_amount;
-  let newRemaining = current.remaining_amount;
-  let newPaymentStatus = current.payment_status;
-
   if (paid_amount !== undefined) {
     newPaidAmount = parseFloat(paid_amount) || 0;
-    newRemaining = Math.max(0, current.grand_total - newPaidAmount);
-    if (newPaidAmount >= current.grand_total && current.grand_total > 0) {
-      newPaymentStatus = 'paid';
-    } else if (newPaidAmount > 0) {
-      newPaymentStatus = 'dp';
-    } else {
-      newPaymentStatus = 'unpaid';
-    }
   }
+  let newRemaining = Math.max(0, newGrandTotal - newPaidAmount);
+  let newPaymentStatus = newRemaining === 0 && newGrandTotal > 0 ? 'paid' : (newPaidAmount > 0 ? 'dp' : 'unpaid');
 
   await query(
     `UPDATE bookings SET
       status = COALESCE(?, status),
       beautician_name = COALESCE(?, beautician_name),
+      shipping_fee = ?,
+      grand_total = ?,
       paid_amount = ?,
       remaining_amount = ?,
       payment_status = ?,
@@ -890,7 +909,7 @@ app.put('/api/bookings/:id', asyncHandler(async (req, res) => {
       customer_notes = COALESCE(?, customer_notes),
       internal_notes = COALESCE(?, internal_notes)
      WHERE id = ?`,
-    [status, beautician_name, newPaidAmount, newRemaining, newPaymentStatus, payment_method, customer_notes, internal_notes, id]
+    [validStatus, beautician_name, newShippingFee, newGrandTotal, newPaidAmount, newRemaining, newPaymentStatus, validPaymentMethod, customer_notes, internal_notes, id]
   );
 
   const updated = await query('SELECT * FROM bookings WHERE id = ?', [id]);
@@ -904,13 +923,14 @@ app.post('/api/bookings/:id/settle-payment', asyncHandler(async (req, res) => {
 
   const booking = bookings[0];
   const { payment_method = 'qris', paid_amount } = req.body;
+  const validPaymentMethod = ['qris', 'cash'].includes(payment_method) ? payment_method : 'qris';
 
   const additionalPayment = paid_amount !== undefined ? parseFloat(paid_amount) : booking.remaining_amount;
   const newPaidAmount = booking.paid_amount + additionalPayment;
   const newRemainingAmount = Math.max(0, booking.grand_total - newPaidAmount);
   const newPaymentStatus = newRemainingAmount === 0 ? 'paid' : 'dp';
   let newStatus = booking.status;
-  if (booking.status === 'booked' || booking.status === 'on_going') {
+  if (booking.status === 'booked') {
     newStatus = 'completed';
   }
 
@@ -922,7 +942,7 @@ app.post('/api/bookings/:id/settle-payment', asyncHandler(async (req, res) => {
       payment_status = ?,
       status = ?
      WHERE id = ?`,
-    [newPaidAmount, newRemainingAmount, payment_method, newPaymentStatus, newStatus, id]
+    [newPaidAmount, newRemainingAmount, validPaymentMethod, newPaymentStatus, newStatus, id]
   );
 
   const updated = await query('SELECT * FROM bookings WHERE id = ?', [id]);

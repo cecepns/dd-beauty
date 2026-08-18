@@ -97,6 +97,7 @@ export default function Bookings() {
     items: [{ treatment_id: '', treatment_option: null, treatment_name: '', quantity: 1, unit_price: 0, subtotal: 0 }],
     discount_type: 'nominal', // 'nominal' | 'percentage'
     discount_value: 0,
+    shipping_fee: 0,
     dp_amount: 0,
     payment_method: 'qris',
     customer_notes: '',
@@ -193,7 +194,7 @@ export default function Bookings() {
   };
 
   // Calculations for form
-  const calculateFormTotals = (items, discType, discVal, dp) => {
+  const calculateFormTotals = (items, discType, discVal, shippingFee, dp) => {
     const subtotal = items.reduce((acc, it) => acc + (parseFloat(it.subtotal) || 0), 0);
     const numDiscVal = parseFloat(discVal) || 0;
     let discountAmount = 0;
@@ -202,11 +203,12 @@ export default function Bookings() {
     } else {
       discountAmount = Math.min(numDiscVal, subtotal);
     }
-    const grandTotal = Math.max(0, subtotal - discountAmount);
+    const numShip = parseFloat(shippingFee) || 0;
+    const grandTotal = Math.max(0, subtotal - discountAmount) + numShip;
     const numDp = parseFloat(dp) || 0;
     const remaining = Math.max(0, grandTotal - numDp);
 
-    return { subtotal, discountAmount, grandTotal, remaining };
+    return { subtotal, discountAmount, shippingFee: numShip, grandTotal, remaining };
   };
 
   const handleSelectCustomer = (selectedOption) => {
@@ -279,6 +281,7 @@ export default function Bookings() {
       items: [{ treatment_id: '', treatment_option: null, treatment_name: '', quantity: 1, unit_price: 0, subtotal: 0 }],
       discount_type: 'nominal',
       discount_value: 0,
+      shipping_fee: 0,
       dp_amount: 50000,
       payment_method: 'qris',
       customer_notes: '',
@@ -315,6 +318,7 @@ export default function Bookings() {
       })),
       discount_type: booking.discount_type || 'nominal',
       discount_value: booking.discount_value || 0,
+      shipping_fee: booking.shipping_fee || 0,
       dp_amount: booking.dp_amount || 0,
       paid_amount: booking.paid_amount || 0,
       payment_method: booking.payment_method || 'qris',
@@ -430,6 +434,7 @@ export default function Bookings() {
     formData.items,
     formData.discount_type,
     formData.discount_value,
+    formData.shipping_fee,
     formData.dp_amount
   );
 
@@ -694,6 +699,12 @@ export default function Bookings() {
                   <span>-{formatRupiah(selectedBooking.discount_amount)}</span>
                 </div>
               )}
+              {selectedBooking.shipping_fee > 0 && (
+                <div className="flex justify-between text-slate-700 font-medium">
+                  <span>Ongkir / Biaya Transport:</span>
+                  <span>+{formatRupiah(selectedBooking.shipping_fee)}</span>
+                </div>
+              )}
               <div className="flex justify-between font-bold text-slate-900 text-sm pt-1 border-t border-rose-200">
                 <span>Grand Total:</span>
                 <span className="text-beauty-800">{formatRupiah(selectedBooking.grand_total)}</span>
@@ -910,17 +921,33 @@ export default function Bookings() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Uang Muka (DP) (Rp)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.dp_amount}
-                  onChange={(e) => setFormData({ ...formData, dp_amount: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Ongkir / Transport (Rp)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.shipping_fee}
+                    onChange={(e) => setFormData({ ...formData, shipping_fee: e.target.value })}
+                    placeholder="0"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Uang Muka (DP) (Rp)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.dp_amount}
+                    onChange={(e) => setFormData({ ...formData, dp_amount: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+                  />
+                </div>
               </div>
 
               <div>
@@ -942,10 +969,18 @@ export default function Bookings() {
                   <span>Subtotal:</span>
                   <span className="font-semibold">{formatRupiah(calculated.subtotal)}</span>
                 </div>
-                <div className="flex justify-between text-rose-600">
-                  <span>Potongan Diskon:</span>
-                  <span className="font-semibold">-{formatRupiah(calculated.discountAmount)}</span>
-                </div>
+                {calculated.discountAmount > 0 && (
+                  <div className="flex justify-between text-rose-600">
+                    <span>Potongan Diskon:</span>
+                    <span className="font-semibold">-{formatRupiah(calculated.discountAmount)}</span>
+                  </div>
+                )}
+                {calculated.shippingFee > 0 && (
+                  <div className="flex justify-between text-slate-700 font-medium">
+                    <span>Ongkir / Transport:</span>
+                    <span className="font-semibold">+{formatRupiah(calculated.shippingFee)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-slate-900 font-bold text-sm pt-2 border-t border-rose-200">
                   <span>Grand Total:</span>
                   <span className="text-beauty-800">{formatRupiah(calculated.grandTotal)}</span>
@@ -1031,14 +1066,29 @@ export default function Bookings() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Catatan Tambahan</label>
-            <input
-              type="text"
-              value={formData.customer_notes}
-              onChange={(e) => setFormData({ ...formData, customer_notes: e.target.value })}
-              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Ongkir / Transport (Rp)
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={formData.shipping_fee}
+                onChange={(e) => setFormData({ ...formData, shipping_fee: e.target.value })}
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Catatan Tambahan</label>
+              <input
+                type="text"
+                value={formData.customer_notes}
+                onChange={(e) => setFormData({ ...formData, customer_notes: e.target.value })}
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800"
+              />
+            </div>
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">

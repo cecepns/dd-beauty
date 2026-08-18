@@ -128,7 +128,7 @@ ${itemsText}
 
 -----------------------------------------
 💰 *Subtotal:* ${formatRupiah(booking.subtotal)}
-🏷️ *Diskon:* ${booking.discount_amount > 0 ? `-${formatRupiah(booking.discount_amount)}` : "Rp 0"}
+🏷️ *Diskon:* ${booking.discount_amount > 0 ? `-${formatRupiah(booking.discount_amount)}` : "Rp 0"}${booking.shipping_fee > 0 ? `\n🛵 *Ongkir / Transport:* +${formatRupiah(booking.shipping_fee)}` : ""}
 ✨ *Grand Total:* *${formatRupiah(booking.grand_total)}*
 💵 *Telah Dibayar (DP/Lunas):* ${formatRupiah(booking.paid_amount)}
 💳 *Sisa Tagihan:* *${formatRupiah(booking.remaining_amount)}*

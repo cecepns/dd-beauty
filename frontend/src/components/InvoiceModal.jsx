@@ -297,6 +297,12 @@ export default function InvoiceModal({
                     <span>-{formatRupiah(booking.discount_amount)}</span>
                   </div>
                 )}
+                {booking.shipping_fee > 0 && (
+                  <div className="flex justify-between text-slate-700 font-medium">
+                    <span>Ongkir / Transport</span>
+                    <span>+{formatRupiah(booking.shipping_fee)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between font-bold text-slate-900 pt-1 text-xs border-t border-slate-200">
                   <span>TOTAL AKHIR</span>
                   <span>{formatRupiah(booking.grand_total)}</span>
@@ -439,6 +445,12 @@ export default function InvoiceModal({
                     <div className="flex justify-between py-1 text-rose-600 font-medium">
                       <span>Potongan Diskon:</span>
                       <span>-{formatRupiah(booking.discount_amount)}</span>
+                    </div>
+                  )}
+                  {booking.shipping_fee > 0 && (
+                    <div className="flex justify-between py-1 text-slate-700 font-medium">
+                      <span>Ongkir / Biaya Transport:</span>
+                      <span>+{formatRupiah(booking.shipping_fee)}</span>
                     </div>
                   )}
                   <div className="flex justify-between py-2 border-t border-b border-slate-200 font-bold text-slate-900 text-sm">

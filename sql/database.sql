@@ -83,18 +83,19 @@ CREATE TABLE IF NOT EXISTS `bookings` (
   `customer_id` INT NOT NULL,
   `booking_date` DATE NOT NULL,
   `booking_time` TIME NOT NULL,
-  `status` ENUM('booked', 'on_going', 'completed', 'cancelled') DEFAULT 'booked',
+  `status` ENUM('booked', 'completed', 'cancelled') DEFAULT 'booked',
   `beautician_name` VARCHAR(100) NULL,
   `subtotal` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
   `discount_type` ENUM('nominal', 'percentage') DEFAULT 'nominal',
   `discount_value` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
   `discount_amount` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
+  `shipping_fee` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
   `grand_total` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
   `dp_amount` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
   `paid_amount` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
   `remaining_amount` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
   `payment_status` ENUM('unpaid', 'dp', 'paid') DEFAULT 'unpaid',
-  `payment_method` ENUM('cash', 'transfer', 'qris', 'card') DEFAULT 'qris',
+  `payment_method` ENUM('qris', 'cash') DEFAULT 'qris',
   `customer_notes` TEXT NULL,
   `internal_notes` TEXT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -184,8 +185,8 @@ INSERT INTO `medical_records` (`id`, `customer_id`, `skin_type`, `allergies`, `s
 
 INSERT INTO `bookings` (`id`, `invoice_number`, `customer_id`, `booking_date`, `booking_time`, `status`, `beautician_name`, `subtotal`, `discount_type`, `discount_value`, `discount_amount`, `grand_total`, `dp_amount`, `paid_amount`, `remaining_amount`, `payment_status`, `payment_method`, `customer_notes`) VALUES
 (1, 'INV-20260815-001', 1, '2026-08-15', '14:00:00', 'completed', 'Maya Sari', 350000.00, 'nominal', 50000.00, 50000.00, 300000.00, 100000.00, 300000.00, 0.00, 'paid', 'qris', 'Ingin terapis Maya'),
-(2, 'INV-20260817-002', 3, '2026-08-17', '11:00:00', 'on_going', 'Rina Agustina', 475000.00, 'percentage', 10.00, 47500.00, 427500.00, 150000.00, 150000.00, 277500.00, 'dp', 'transfer', 'Diskon member VVIP 10%'),
-(3, 'INV-20260818-003', 2, '2026-08-18', '16:30:00', 'booked', 'Siti Rahma', 280000.00, 'nominal', 0.00, 0.00, 280000.00, 100000.00, 100000.00, 180000.00, 'dp', 'transfer', 'Booking eyelash sore hari'),
+(2, 'INV-20260817-002', 3, '2026-08-17', '11:00:00', 'booked', 'Rina Agustina', 475000.00, 'percentage', 10.00, 47500.00, 427500.00, 150000.00, 150000.00, 277500.00, 'dp', 'qris', 'Diskon member VVIP 10%'),
+(3, 'INV-20260818-003', 2, '2026-08-18', '16:30:00', 'booked', 'Siti Rahma', 280000.00, 'nominal', 0.00, 0.00, 280000.00, 100000.00, 100000.00, 180000.00, 'dp', 'cash', 'Booking eyelash sore hari'),
 (4, 'INV-20260819-004', 4, '2026-08-19', '10:00:00', 'booked', 'Maya Sari', 640000.00, 'nominal', 40000.00, 40000.00, 600000.00, 200000.00, 200000.00, 400000.00, 'dp', 'qris', 'Paket Glass Skin + Lash Lift');
 
 INSERT INTO `booking_items` (`id`, `booking_id`, `treatment_id`, `treatment_name`, `quantity`, `unit_price`, `subtotal`) VALUES
