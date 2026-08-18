@@ -94,7 +94,6 @@ export default function Bookings() {
     customer_option: null, // For React-Select
     booking_date: new Date().toISOString().split('T')[0],
     booking_time: '10:00',
-    beautician_name: 'Maya Sari',
     items: [{ treatment_id: '', treatment_option: null, treatment_name: '', quantity: 1, unit_price: 0, subtotal: 0 }],
     discount_type: 'nominal', // 'nominal' | 'percentage'
     discount_value: 0,
@@ -277,7 +276,6 @@ export default function Bookings() {
       customer_option: null,
       booking_date: new Date().toISOString().split('T')[0],
       booking_time: '11:00',
-      beautician_name: 'Maya Sari',
       items: [{ treatment_id: '', treatment_option: null, treatment_name: '', quantity: 1, unit_price: 0, subtotal: 0 }],
       discount_type: 'nominal',
       discount_value: 0,
@@ -301,7 +299,6 @@ export default function Bookings() {
         : null,
       booking_date: booking.booking_date,
       booking_time: booking.booking_time ? booking.booking_time.substring(0, 5) : '10:00',
-      beautician_name: booking.beautician_name || '',
       status: booking.status,
       items: (booking.items || []).map((it) => ({
         treatment_id: it.treatment_id,
@@ -484,7 +481,6 @@ export default function Bookings() {
         >
           <option value="">Semua Status Sesi</option>
           <option value="booked">Terjadwal</option>
-          <option value="on_going">Sedang Perawatan</option>
           <option value="completed">Selesai</option>
           <option value="cancelled">Dibatalkan</option>
         </select>
@@ -664,7 +660,6 @@ export default function Bookings() {
               <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
                 <p><strong>Jadwal:</strong> {formatDate(selectedBooking.booking_date)}</p>
                 <p><strong>Jam:</strong> {formatTime(selectedBooking.booking_time)} WIB</p>
-                <p><strong>Terapis:</strong> {selectedBooking.beautician_name || '-'}</p>
                 <p><strong>Status Sesi:</strong> <span className="font-bold uppercase">{selectedBooking.status}</span></p>
               </div>
             </div>
@@ -809,35 +804,18 @@ export default function Bookings() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Nama Beautician / Terapis
-              </label>
-              <input
-                type="text"
-                value={formData.beautician_name}
-                onChange={(e) => setFormData({ ...formData, beautician_name: e.target.value })}
-                placeholder="Contoh: Maya Sari"
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:ring-2 focus:ring-beauty-500 outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Metode Pembayaran
-              </label>
-              <select
-                value={formData.payment_method}
-                onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:ring-2 focus:ring-beauty-500 outline-none"
-              >
-                <option value="qris">QRIS / Instant Payment</option>
-                <option value="transfer">Transfer Bank (BCA/Mandiri/BRI)</option>
-                <option value="cash">Tunai / Cash</option>
-                <option value="card">Kartu Debit / Kredit</option>
-              </select>
-            </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              Metode Pembayaran
+            </label>
+            <select
+              value={formData.payment_method}
+              onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:ring-2 focus:ring-beauty-500 outline-none"
+            >
+              <option value="qris">QRIS / Instant Payment</option>
+              <option value="cash">Tunai / Cash</option>
+            </select>
           </div>
 
           {/* Treatment Items Section (React-Select Async for each row) */}
@@ -1018,30 +996,17 @@ export default function Bookings() {
         maxWidth="max-w-2xl"
       >
         <form onSubmit={handleEditSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Status Sesi</label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800"
-              >
-                <option value="booked">Terjadwal (Booked)</option>
-                <option value="on_going">Sedang Perawatan (On Going)</option>
-                <option value="completed">Selesai (Completed)</option>
-                <option value="cancelled">Dibatalkan (Cancelled)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Terapis / Beautician</label>
-              <input
-                type="text"
-                value={formData.beautician_name}
-                onChange={(e) => setFormData({ ...formData, beautician_name: e.target.value })}
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800"
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Status Sesi</label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800"
+            >
+              <option value="booked">Terjadwal (Booked)</option>
+              <option value="completed">Selesai (Completed)</option>
+              <option value="cancelled">Dibatalkan (Cancelled)</option>
+            </select>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1143,9 +1108,7 @@ export default function Bookings() {
               className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800"
             >
               <option value="qris">QRIS / Instant Payment</option>
-              <option value="transfer">Transfer Bank (BCA/Mandiri/BRI)</option>
               <option value="cash">Tunai / Cash</option>
-              <option value="card">Kartu Debit / Kredit</option>
             </select>
           </div>
 

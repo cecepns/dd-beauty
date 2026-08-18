@@ -266,10 +266,6 @@ export default function InvoiceModal({
                   <span>No. HP:</span>
                   <span>{booking.customer?.phone || '-'}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Terapis:</span>
-                  <span>{booking.beautician_name || '-'}</span>
-                </div>
               </div>
 
               {/* Items List */}
@@ -377,7 +373,7 @@ export default function InvoiceModal({
 
                 <div className="p-4 rounded-xl bg-rose-50/50 border border-rose-100">
                   <span className="text-[11px] font-bold text-beauty-800 uppercase tracking-wider">
-                    Jadwal & Beautician
+                    Jadwal Perawatan
                   </span>
                   <div className="mt-2 space-y-1 text-xs">
                     <p className="text-slate-700">
@@ -385,9 +381,6 @@ export default function InvoiceModal({
                     </p>
                     <p className="text-slate-700">
                       <strong>Waktu Booking:</strong> {formatTime(booking.booking_time)} WIB
-                    </p>
-                    <p className="text-slate-700">
-                      <strong>Terapis / Beautician:</strong> {booking.beautician_name || 'Beautician On Duty'}
                     </p>
                     <p className="text-slate-700">
                       <strong>Status Sesi:</strong> <span className="font-semibold text-slate-900 uppercase">{booking.status}</span>

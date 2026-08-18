@@ -193,8 +193,6 @@ export default function Dashboard() {
                           <Clock className="w-3.5 h-3.5 text-beauty-600" />
                           {formatTime(apt.booking_time)} WIB
                         </span>
-                        <span>•</span>
-                        <span>Terapis: {apt.beautician_name || '-'}</span>
                       </div>
                     </div>
 

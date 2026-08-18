@@ -483,6 +483,32 @@ app.post('/api/categories', asyncHandler(async (req, res) => {
   res.status(201).json({ success: true, message: 'Kategori berhasil ditambahkan', data: inserted[0] });
 }));
 
+app.put('/api/categories/:id', asyncHandler(async (req, res) => {
+  const id = parseInt(req.params.id);
+  const existing = await query('SELECT * FROM treatment_categories WHERE id = ?', [id]);
+  if (!existing.length) return res.status(404).json({ success: false, message: 'Kategori tidak ditemukan' });
+
+  const { name, description, icon } = req.body;
+  await query(
+    `UPDATE treatment_categories SET
+      name = COALESCE(?, name),
+      description = COALESCE(?, description),
+      icon = COALESCE(?, icon)
+     WHERE id = ?`,
+    [name, description, icon, id]
+  );
+
+  const updated = await query('SELECT * FROM treatment_categories WHERE id = ?', [id]);
+  res.json({ success: true, message: 'Kategori berhasil diperbarui', data: updated[0] });
+}));
+
+app.delete('/api/categories/:id', asyncHandler(async (req, res) => {
+  const id = parseInt(req.params.id);
+  const result = await query('DELETE FROM treatment_categories WHERE id = ?', [id]);
+  if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Kategori tidak ditemukan' });
+  res.json({ success: true, message: 'Kategori berhasil dihapus' });
+}));
+
 // 6. TREATMENTS / LAYANAN
 app.get('/api/treatments', asyncHandler(async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page) || 1);

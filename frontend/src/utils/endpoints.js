@@ -20,6 +20,8 @@ export const API_ENDPOINTS = {
   CATEGORIES: {
     LIST: "/categories",
     CREATE: "/categories",
+    UPDATE: (id) => `/categories/${id}`,
+    DELETE: (id) => `/categories/${id}`,
   },
   TREATMENTS: {
     LIST: "/treatments",

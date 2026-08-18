@@ -122,7 +122,6 @@ Terima kasih telah mempercayakan perawatan kecantikan Anda di *${studioName}*.
 🧾 *No. Invoice:* ${booking.invoice_number}
 📅 *Tanggal:* ${formatDate(booking.booking_date)}
 ⏰ *Waktu:* ${formatTime(booking.booking_time)} WIB
-💆‍♀️ *Terapis / Beautician:* ${booking.beautician_name || "Staff On Duty"}
 
 📋 *Rincian Treatment:*
 ${itemsText}

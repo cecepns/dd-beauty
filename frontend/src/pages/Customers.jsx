@@ -32,7 +32,6 @@ export default function Customers() {
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [memberFilter, setMemberFilter] = useState('');
 
   // Modals state
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
@@ -73,7 +72,6 @@ export default function Customers() {
         page: pagination.page,
         limit: pagination.limit,
         search,
-        member_status: memberFilter || undefined,
       };
       const res = await request.get(API_ENDPOINTS.CUSTOMERS.LIST, params);
       if (res.success) {
@@ -85,7 +83,7 @@ export default function Customers() {
     } finally {
       setIsLoading(false);
     }
-  }, [pagination.page, pagination.limit, search, memberFilter]);
+  }, [pagination.page, pagination.limit, search]);
 
   useEffect(() => {
     fetchCustomers();
@@ -233,32 +231,16 @@ export default function Customers() {
         </button>
       </div>
 
-      {/* Filter & Search */}
-      <div className="p-4 bg-white rounded-2xl border border-rose-100 shadow-xs flex flex-col sm:flex-row items-center gap-3">
-        <div className="w-full sm:flex-1">
-          <DebounceSearch
-            value={search}
-            onChange={(val) => {
-              setSearch(val);
-              setPagination((prev) => ({ ...prev, page: 1 }));
-            }}
-            placeholder="Cari nama atau nomor WhatsApp..."
-          />
-        </div>
-
-        <select
-          value={memberFilter}
-          onChange={(e) => {
-            setMemberFilter(e.target.value);
+      {/* Search Bar */}
+      <div className="p-4 bg-white rounded-2xl border border-rose-100 shadow-xs">
+        <DebounceSearch
+          value={search}
+          onChange={(val) => {
+            setSearch(val);
             setPagination((prev) => ({ ...prev, page: 1 }));
           }}
-          className="w-full sm:w-auto px-3.5 py-2 bg-slate-50 border border-slate-200 text-xs font-semibold rounded-xl text-slate-700 focus:ring-2 focus:ring-beauty-500 outline-none cursor-pointer"
-        >
-          <option value="">Semua Tingkat Member</option>
-          <option value="regular">Regular Member</option>
-          <option value="vip">VIP Member</option>
-          <option value="vvip">VVIP Member</option>
-        </select>
+          placeholder="Cari nama atau nomor WhatsApp..."
+        />
       </div>
 
       {/* CLEAN MINIMALIST TABLE */}
@@ -281,18 +263,12 @@ export default function Customers() {
                 <tr>
                   <th className="py-3.5 px-4">Nama Pelanggan</th>
                   <th className="py-3.5 px-4">Nomor WhatsApp</th>
-                  <th className="py-3.5 px-4">Status & Kunjungan</th>
+                  <th className="py-3.5 px-4">Total Kunjungan</th>
                   <th className="py-3.5 px-4 text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {customers.map((cust) => {
-                  const memberBadgeStyles = {
-                    vvip: 'bg-amber-100 text-amber-900 border-amber-300 font-bold',
-                    vip: 'bg-purple-100 text-purple-800 border-purple-300 font-bold',
-                    regular: 'bg-slate-100 text-slate-700 border-slate-200 font-medium',
-                  };
-
                   return (
                     <tr key={cust.id} className="hover:bg-rose-50/30 transition-colors">
                       {/* Name & Code */}
@@ -302,11 +278,8 @@ export default function Customers() {
                             {cust.name.substring(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                            <div className="font-bold text-slate-900">
                               {cust.name}
-                              {cust.member_status === 'vvip' && (
-                                <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
-                              )}
                             </div>
                             <div className="text-[11px] font-mono text-beauty-700 font-medium">
                               {cust.customer_code}
@@ -326,20 +299,11 @@ export default function Customers() {
                         )}
                       </td>
 
-                      {/* Member & Visits */}
+                      {/* Visits */}
                       <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`px-2 py-0.5 rounded-md text-[11px] uppercase border ${
-                              memberBadgeStyles[cust.member_status] || memberBadgeStyles.regular
-                            }`}
-                          >
-                            {cust.member_status}
-                          </span>
-                          <span className="text-xs text-slate-500">
-                            <strong>{cust.total_visits || 0}x</strong> kunjungan
-                          </span>
-                        </div>
+                        <span className="text-xs font-semibold text-slate-700">
+                          <strong className="text-slate-900 font-bold">{cust.total_visits || 0}x</strong> kunjungan
+                        </span>
                       </td>
 
                       {/* Clean Actions */}
@@ -415,11 +379,8 @@ export default function Customers() {
           <div className="space-y-5 text-xs sm:text-sm">
             {/* Profil Pelanggan */}
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
-              <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+              <div className="pb-2 border-b border-slate-200">
                 <span className="font-bold text-slate-900 text-sm">{selectedCustomerDetail.name}</span>
-                <span className="px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-beauty-100 text-beauty-800">
-                  {selectedCustomerDetail.member_status} Member
-                </span>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
@@ -539,30 +500,15 @@ export default function Customers() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Email</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="email@domain.com"
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Tingkat Membership</label>
-              <select
-                value={formData.member_status}
-                onChange={(e) => setFormData({ ...formData, member_status: e.target.value })}
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800"
-              >
-                <option value="regular">Regular</option>
-                <option value="vip">VIP</option>
-                <option value="vvip">VVIP</option>
-              </select>
-            </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Email</label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              placeholder="email@domain.com"
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800"
+            />
           </div>
 
           <div>

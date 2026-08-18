@@ -48,6 +48,9 @@ export default function Treatments() {
   });
 
   // Form State Category
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [isDeletingCategory, setIsDeletingCategory] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
   const [categoryForm, setCategoryForm] = useState({
     name: '',
     description: '',
@@ -91,6 +94,28 @@ export default function Treatments() {
   useEffect(() => {
     fetchTreatments();
   }, [fetchTreatments]);
+
+  // Open Category Management Modal
+  const handleOpenCategoryModal = () => {
+    setSelectedCategory(null);
+    setCategoryForm({ name: '', description: '', icon: 'Sparkles' });
+    setIsCategoryModalOpen(true);
+  };
+
+  // Open Edit Category Mode inside modal
+  const handleEditCategoryClick = (cat) => {
+    setSelectedCategory(cat);
+    setCategoryForm({
+      name: cat.name || '',
+      description: cat.description || '',
+      icon: cat.icon || 'Sparkles',
+    });
+  };
+
+  const handleResetCategoryForm = () => {
+    setSelectedCategory(null);
+    setCategoryForm({ name: '', description: '', icon: 'Sparkles' });
+  };
 
   // Open Create Treatment Modal
   const handleOpenCreateModal = () => {
@@ -152,7 +177,7 @@ export default function Treatments() {
     }
   };
 
-  // Submit New Category
+  // Submit Add / Edit Category
   const handleCategorySubmit = async (e) => {
     e.preventDefault();
     if (!categoryForm.name) {
@@ -161,15 +186,47 @@ export default function Treatments() {
     }
     try {
       setIsSubmitting(true);
-      const res = await request.post(API_ENDPOINTS.CATEGORIES.CREATE, categoryForm);
-      if (res.success) {
-        toast.success('Kategori baru berhasil ditambahkan');
-        setIsCategoryModalOpen(false);
-        fetchCategories();
-        setCategoryForm({ name: '', description: '', icon: 'Sparkles' });
+      if (selectedCategory) {
+        const res = await request.put(API_ENDPOINTS.CATEGORIES.UPDATE(selectedCategory.id), categoryForm);
+        if (res.success) {
+          toast.success('Kategori berhasil diperbarui');
+          handleResetCategoryForm();
+          fetchCategories();
+          fetchTreatments();
+        }
+      } else {
+        const res = await request.post(API_ENDPOINTS.CATEGORIES.CREATE, categoryForm);
+        if (res.success) {
+          toast.success('Kategori baru berhasil ditambahkan');
+          setCategoryForm({ name: '', description: '', icon: 'Sparkles' });
+          fetchCategories();
+        }
       }
     } catch (err) {
-      toast.error(err.message || 'Gagal membuat kategori');
+      toast.error(err.message || 'Gagal menyimpan kategori');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Delete Category
+  const handleConfirmDeleteCategory = async () => {
+    if (!categoryToDelete) return;
+    try {
+      setIsSubmitting(true);
+      const res = await request.delete(API_ENDPOINTS.CATEGORIES.DELETE(categoryToDelete.id));
+      if (res.success) {
+        toast.success('Kategori berhasil dihapus');
+        setIsDeletingCategory(false);
+        setCategoryToDelete(null);
+        if (selectedCategory?.id === categoryToDelete.id) {
+          handleResetCategoryForm();
+        }
+        fetchCategories();
+        fetchTreatments();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Gagal menghapus kategori');
     } finally {
       setIsSubmitting(false);
     }
@@ -209,11 +266,11 @@ export default function Treatments() {
         <div className="flex items-center gap-2 self-start sm:self-auto">
           <button
             type="button"
-            onClick={() => setIsCategoryModalOpen(true)}
+            onClick={handleOpenCategoryModal}
             className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-rose-200 text-beauty-700 text-xs sm:text-sm font-bold rounded-xl shadow-xs hover:bg-rose-50 transition-all"
           >
             <Layers className="w-4 h-4" />
-            + Kategori
+            Kelola Kategori
           </button>
           <button
             type="button"
@@ -459,59 +516,144 @@ export default function Treatments() {
         </form>
       </Modal>
 
-      {/* Modal 2: Create Category */}
+      {/* Modal 2: Manage Categories (List + Add/Edit Form) */}
       <Modal
         isOpen={isCategoryModalOpen}
-        onClose={() => setIsCategoryModalOpen(false)}
-        title="Tambah Kategori Layanan"
-        maxWidth="max-w-md"
+        onClose={() => {
+          setIsCategoryModalOpen(false);
+          handleResetCategoryForm();
+        }}
+        title="Kelola Kategori Layanan"
+        subtitle="Tambah, edit, atau hapus kategori treatment salon"
+        maxWidth="max-w-lg"
       >
-        <form onSubmit={handleCategorySubmit} className="space-y-4">
+        <div className="space-y-6">
+          {/* List of existing categories */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">
-              Nama Kategori <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={categoryForm.name}
-              onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
-              placeholder="Contoh: Body Slimming & Spa"
-              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800"
-            />
+            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+              Daftar Kategori ({categories.length})
+            </h4>
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+              {categories.map((c) => (
+                <div
+                  key={c.id}
+                  className={`p-3 rounded-xl border flex items-center justify-between transition-all text-xs ${
+                    selectedCategory?.id === c.id
+                      ? 'bg-rose-50 border-rose-300 shadow-xs'
+                      : 'bg-white border-slate-200 hover:border-rose-200'
+                  }`}
+                >
+                  <div>
+                    <div className="font-bold text-slate-900">{c.name}</div>
+                    {c.description && (
+                      <div className="text-slate-500 text-[11px] mt-0.5 line-clamp-1">{c.description}</div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleEditCategoryClick(c)}
+                      className="p-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all"
+                      title="Edit Kategori"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCategoryToDelete(c);
+                        setIsDeletingCategory(true);
+                      }}
+                      className="p-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 transition-all"
+                      title="Hapus Kategori"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Deskripsi Kategori</label>
-            <textarea
-              rows={2}
-              value={categoryForm.description}
-              onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
-              placeholder="Keterangan kategori..."
-              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800"
-            />
-          </div>
+          {/* Form Add / Edit Category */}
+          <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200 space-y-3">
+            <div className="flex items-center justify-between">
+              <h5 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                {selectedCategory ? `Edit Kategori: "${selectedCategory.name}"` : 'Tambah Kategori Baru'}
+              </h5>
+              {selectedCategory && (
+                <button
+                  type="button"
+                  onClick={handleResetCategoryForm}
+                  className="text-[11px] text-beauty-700 hover:underline font-semibold"
+                >
+                  + Tambah Baru
+                </button>
+              )}
+            </div>
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
-            <button
-              type="button"
-              onClick={() => setIsCategoryModalOpen(false)}
-              className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-5 py-2 bg-beauty-600 hover:bg-beauty-700 text-white text-xs font-bold rounded-xl shadow-md disabled:opacity-50"
-            >
-              {isSubmitting ? 'Menyimpan...' : 'Tambah Kategori'}
-            </button>
+            <form onSubmit={handleCategorySubmit} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Nama Kategori <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={categoryForm.name}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                  placeholder="Contoh: Body Slimming & Spa"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:ring-2 focus:ring-beauty-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Deskripsi Kategori</label>
+                <textarea
+                  rows={2}
+                  value={categoryForm.description}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                  placeholder="Keterangan kategori..."
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:ring-2 focus:ring-beauty-500 outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCategoryModalOpen(false);
+                    handleResetCategoryForm();
+                  }}
+                  className="px-3.5 py-1.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-100"
+                >
+                  Tutup
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-4 py-1.5 bg-beauty-600 hover:bg-beauty-700 text-white text-xs font-bold rounded-xl shadow-md disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Menyimpan...' : selectedCategory ? 'Perbarui Kategori' : 'Tambah Kategori'}
+                </button>
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
       </Modal>
 
-      {/* Delete Confirmation */}
+      {/* Category Delete Confirmation */}
+      <ConfirmDialog
+        isOpen={isDeletingCategory}
+        onClose={() => setIsDeletingCategory(false)}
+        onConfirm={handleConfirmDeleteCategory}
+        title="Hapus Kategori"
+        message={`Apakah Anda yakin ingin menghapus kategori "${categoryToDelete?.name}"?`}
+        isLoading={isSubmitting}
+      />
+
+      {/* Delete Treatment Confirmation */}
       <ConfirmDialog
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}
