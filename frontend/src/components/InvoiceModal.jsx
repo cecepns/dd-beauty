@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { toPng, toJpeg } from 'html-to-image';
 import jsPDF from 'jspdf';
 import toast from 'react-hot-toast';
@@ -17,6 +17,8 @@ import {
   Scissors
 } from 'lucide-react';
 import Modal from './Modal';
+import { request } from '../utils/request';
+import { API_ENDPOINTS } from '../utils/endpoints';
 import {
   formatRupiah,
   formatDate,
@@ -35,17 +37,37 @@ export default function InvoiceModal({
   const invoiceRef = useRef(null);
   const [template, setTemplate] = useState('pos'); // 'pos' (thermal 80mm/58mm) or 'luxury' (full invoice)
   const [isExporting, setIsExporting] = useState(false);
+  const [fetchedSettings, setFetchedSettings] = useState(null);
+
+  // Fetch settings from API when modal opens to ensure always up-to-date data from database
+  useEffect(() => {
+    if (isOpen) {
+      const loadSettings = async () => {
+        try {
+          const res = await request.get(API_ENDPOINTS.SETTINGS.GET);
+          if (res.success && res.data) {
+            setFetchedSettings(res.data);
+          }
+        } catch (err) {
+          console.error('Gagal mengambil pengaturan studio untuk invoice:', err);
+        }
+      };
+      loadSettings();
+    }
+  }, [isOpen]);
 
   if (!booking) return null;
 
-  const studio = studioSettings || {
-    studio_name: 'DD Beauty Serve',
-    tagline: 'Luxury Beauty & Skin Care Studio',
-    phone: '0812-8899-7722',
-    email: 'care@ddbeautyserve.com',
-    address: 'Ruko Emerald Boulevard Blok B3, Jakarta Selatan',
-    instagram: '@ddbeauty.serve',
-    receipt_footer: 'Terima kasih telah mempercayakan kecantikan Anda bersama DD Beauty Serve.'
+  const activeSettings = fetchedSettings || studioSettings || {};
+
+  const studio = {
+    studio_name: activeSettings.studio_name || 'DD Beauty Serve',
+    tagline: activeSettings.tagline || 'Luxury Beauty & Skin Care Studio',
+    phone: activeSettings.phone || '0812-8899-7722',
+    email: activeSettings.email || 'care@ddbeautyserve.com',
+    address: activeSettings.address || 'Ruko Emerald Boulevard Blok B3, Jakarta Selatan',
+    instagram: activeSettings.instagram || '@ddbeauty.serve',
+    receipt_footer: activeSettings.receipt_footer || 'Terima kasih telah mempercayakan kecantikan Anda bersama DD Beauty Serve.'
   };
 
   // Direct Print via Browser
@@ -324,9 +346,9 @@ export default function InvoiceModal({
               {/* Footer */}
               <div className="text-center pt-2 text-[10px] text-slate-500 space-y-1">
                 <p className="font-medium">{studio.receipt_footer}</p>
-                <p className="italic">Layanan & Konsultasi Kecantikan DD Beauty</p>
+                <p className="italic">Layanan & Konsultasi Kecantikan {studio.studio_name}</p>
                 <div className="pt-2 text-[9px] text-slate-400">
-                  *** Dicetak otomatis oleh DD Beauty ***
+                  *** Dicetak otomatis oleh {studio.studio_name} ***
                 </div>
               </div>
             </div>
@@ -426,7 +448,7 @@ export default function InvoiceModal({
                 <div className="w-full sm:w-1/2 p-3.5 rounded-xl bg-slate-50 border border-slate-100 text-xs space-y-2">
                   <div className="font-bold text-slate-700">Catatan & Ketentuan:</div>
                   <p className="text-slate-500 leading-relaxed">
-                    {booking.customer_notes ? `"${booking.customer_notes}"` : 'Simpan invoice ini sebagai bukti reservasi dan riwayat perawatan di DD Beauty Serve.'}
+                    {booking.customer_notes ? `"${booking.customer_notes}"` : `Simpan invoice ini sebagai bukti reservasi dan riwayat perawatan di ${studio.studio_name}.`}
                   </p>
                   <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
                     <span className="text-slate-500">Status Pembayaran:</span>
